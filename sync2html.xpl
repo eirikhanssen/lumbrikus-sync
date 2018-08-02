@@ -143,6 +143,50 @@
         </p:input>
     </p:xslt>
     <p:delete name="delete-para_begin" match="para_begin"/>
+    <p:delete name="delete-p_key" match="p[@class='key']"/>
+    
+    <p:xslt name="xslt-timer" version="2.0">
+        <!-- 
+            transform seconds to minutes:seconds.fractions of a second
+        -->
+        <p:input port="source"/>
+        <p:input port="parameters"><p:empty/></p:input>
+        <p:input port="stylesheet">
+            <p:inline>
+                <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+                    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                    xmlns:eh="http://eirikhanssen.com/ns"
+                    exclude-result-prefixes="xs eh"
+                    version="2.0">
+                    <xsl:output method="xml" omit-xml-declaration="yes"></xsl:output>
+                    <xsl:strip-space elements="p"/>
+                    <xsl:function name="eh:timer" as="xs:string">
+                        <xsl:param name="input" as="xs:string"></xsl:param>
+                        <xsl:variable name="fraction" select="replace($input, '^[0-9]+([.][0-9]+)s$','$1')"/>
+                        <xsl:variable name="whole_seconds" select="xs:integer(replace($input, '^([0-9]+)([.][0-9]+)s$','$1'))"/>
+                        <xsl:variable name="duration" select="$whole_seconds * xs:dayTimeDuration('PT1S')"/>
+                        <xsl:variable name="minutes" select="minutes-from-duration($duration)"/>
+                        <xsl:variable name="seconds" select="seconds-from-duration($duration)"/>
+                        <xsl:value-of select="concat(format-number($minutes,'00'), ':' , format-number($seconds, '00'), $fraction)"/>
+                    </xsl:function>
+                    
+                    <xsl:template match="span">
+                        <xsl:copy>
+                            <xsl:attribute name="data-begin" select="eh:timer(@begin)"/>
+                            <xsl:attribute name="data-end" select="eh:timer(@end)"/>
+                            <xsl:apply-templates/>
+                        </xsl:copy>
+                    </xsl:template>
+                    
+                    <xsl:template match="@*|node()">
+                        <xsl:copy>
+                            <xsl:apply-templates select="@*|node()"/>
+                        </xsl:copy>
+                    </xsl:template>
+                </xsl:stylesheet>
+            </p:inline>
+        </p:input>
+    </p:xslt>
     
     <p:namespace-rename from="http://www.w3.org/ns/xproc-step" to=""></p:namespace-rename>
     <p:identity name="final"/>
